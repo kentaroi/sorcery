@@ -7,29 +7,29 @@ module Sorcery
       module UserActivation
         def self.included(base)
           base.sorcery_config.class_eval do
-            attr_accessor :pending_email_attribute_name,                          # the attribute name to hold pending new email address
+            attr_accessor :pending_email_attribute_name,                        # the attribute name to hold pending new email address
 
-                          :email_verification_token_attribute_name,               # the attribute name to hold verification code
-                                                                          # (sent by email).
+                          :email_verification_token_attribute_name,             # the attribute name to hold verification code
+                                                                                # (sent by email).
 
-                          :email_verification_token_expires_at_attribute_name,    # the attribute name to hold verification code
-                                                                          # expiration date. 
+                          :email_verification_token_expires_at_attribute_name,  # the attribute name to hold verification code
+                                                                                # expiration date. 
 
-                          :email_verification_token_expiration_period,            # how many seconds before the verification code
-                                                                          # expires. nil for never expires.
+                          :email_verification_token_expiration_period,          # how many seconds before the verification code
+                                                                                # expires. nil for never expires.
 
-                          :email_verification_mailer,                        # your mailer class. Required when
-                                                                          # email_verification_mailer_disabled == false.
+                          :email_verification_mailer,                           # your mailer class. Required when
+                                                                                # email_verification_mailer_disabled == false.
 
-                          :email_verification_mailer_disabled,                    # when true sorcery will not automatically
-                                                                          # email activation details and allow you to
-                                                                          # manually handle how and when email is sent
+                          :email_verification_mailer_disabled,                  # when true sorcery will not automatically
+                                                                                # email activation details and allow you to
+                                                                                # manually handle how and when email is sent
 
-                          :email_verification_needed_email_method_name,           # email verification needed email method on your
-                                                                          # mailer class.
+                          :email_verification_needed_email_method_name,         # email verification needed email method on your
+                                                                                # mailer class.
 
-                          :email_verification_success_email_method_name,          # email verification success email method on your
-                                                                          # mailer class.
+                          :email_verification_success_email_method_name,        # email verification success email method on your
+                                                                                # mailer class.
           end
 
           base.sorcery_config.instance_eval do
@@ -45,9 +45,10 @@ module Sorcery
 
           base.class_eval do
             # don't setup activation if no password supplied - this user is created automatically
-            before_create :setup_activation, :if => Proc.new { |user| user.send(sorcery_config.password_attribute_name).present? }
-            # don't send activation needed email if no crypted password created - this user is external (OAuth etc.)
-            after_create  :send_activation_needed_email!, :if => Proc.new { |user| !user.external? }
+            before_update :setup_email_verification, :if => Proc.new { |user|
+              user.send(sorcery_config.pending_email_attribute_name).present? &&
+              user.send("#{sorcery_config.email_attribute_name}_changed?")
+            }
 
             # don't swap back if email address has not been not changed
             after_validation :swap_back_emails, :if => Proc.new {|user|
@@ -62,18 +63,23 @@ module Sorcery
             }
           end
 
-          base.sorcery_config.after_config << :set_email_verification_token_fields
+
+          base.sorcery_config.after_config << :copy_user_activation_config_to_email_verification_config_if_nil
           base.sorcery_config.after_config << :validate_mailer_defined
-          base.sorcery_config.after_config << :define_email_verification_mongoid_fields if defined?(Mongoid) and base.ancestors.include?(Mongoid::Document)
+
+          if defined?(Mongoid) and base.ancestors.include?(Mongoid::Document)
+            base.sorcery_config.after_config << :define_email_verification_mongoid_fields
+          end
+
           if defined?(MongoMapper) and base.ancestors.include?(MongoMapper::Document)
             base.sorcery_config.after_config << :define_email_verification_mongo_mapper_fields
           end
+
           base.sorcery_config.after_config << :override_email_attribute_setter_method
+
 
           base.extend(ClassMethods)
           base.send(:include, InstanceMethods)
-
-
         end
 
         module ClassMethods
@@ -87,18 +93,25 @@ module Sorcery
 
           protected
 
-          # defaults for email verification token fields are user activation token fields
-          def set_email_verification_token_fields
-            @sorcery.email_verification_token_attribute_name = @sorcery_config.user_activation_token_attribute_name unless @sorcery_config.email_verification_token_attribute_name
-            @sorcery.email_verification_token_expires_at_attribute_name = @sorcery_config.user_activation_token_expires_at_attribute_name unless @sorcery_config.email_verification_token_expires_at_attribute_name
-            @sorcery.email_verification_token_expiration_period = @sorcery_config.user_activation_token_expiration_period unless @sorcery_config.email_verification_token_expiration_period
+          def copy_user_activation_config_to_email_verification_config_if_nil
+            unless @sorcery_config.email_verification_token_attribute_name
+              @sorcery.email_verification_token_attribute_name = @sorcery_config.user_activation_token_attribute_name
+            end
+
+            unless @sorcery_config.email_verification_token_expires_at_attribute_name
+              @sorcery.email_verification_token_expires_at_attribute_name = @sorcery_config.user_activation_token_expires_at_attribute_name
+            end
+
+            unless @sorcery_config.email_verification_token_expiration_period
+              @sorcery.email_verification_token_expiration_period = @sorcery_config.user_activation_token_expiration_period
+            end
           end
 
           # This submodule requires the developer to define his own mailer class to be used by it
-          # when activation_mailer_disabled is false
+          # when email_verification_mailer_disabled is false
           def validate_mailer_defined
             msg = "To use user_activation submodule, you must define a mailer (config.user_activation_mailer = YourMailerClass)."
-            raise ArgumentError, msg if @sorcery_config.email_verification_mailer == nil and @sorcery_config.activation_mailer_disabled == false
+            raise ArgumentError, msg if @sorcery_config.email_verification_mailer == nil and @sorcery_config.email_verification_mailer_disabled == false
           end
 
           def define_email_verification_mongoid_fields
@@ -145,19 +158,9 @@ module Sorcery
             write_attribute('#{config.email_attribute_name}', self.send(config.pending_email_attribute_name))
             self.send(:"#{config.pending_email_attribute_name}=", nil)
 
-            unless validate?
-              if errors.messages[config.email_attribute_name]
-                if self.class.ancestors.include?(ActiveRecord)
-                  raise ActiveRecord::RecordInvalid, "Validation failed #{errors.messages[config.email_attribute_name]}"
-                elsif self.class.ancestors.include?(Mongoid)
-                  raise Errors::Validations, "Validation failed #{errors.messages[config.email_attribute_name]}"
-                elsif self.class.ancestors.include?(MongoMapper)
-                  raise MongMapper::DocumentNotValid, "Validation failed #{errors.messages[config.email_attribute_name]}"
-                else
-                  raise Errors, "Validation failed #{errors.messages[config.email_attribute_name]}"
-                end
-              end
-              @errors = ActiveModel::Errors.new(self)
+            unless valid?
+              raise_validation_error_on_email! if errors.messages[config.email_attribute_name]
+              @errors = nil
             end
 
             save!(:validate => false) # don't run validations
@@ -170,14 +173,36 @@ module Sorcery
             config = sorcery_config
             generated_verification_token = TemporaryToken.generate_random_token
             self.send(:"#{config.email_verification_attribute_name}=", generated_activation_token)
-            self.send(:"#{config.email_verification_token_expires_at_attribute_name}=", Time.now.in_time_zone + config.email_verification_token_expiration_period) if config.email_verification_token_expiration_period
+            if config.email_verification_token_expiration_period
+              self.send(:"#{config.email_verification_token_expires_at_attribute_name}=",
+                        Time.now.in_time_zone + config.email_verification_token_expiration_period)
+            end
+          end
+
+          def swap_back_emails
+            config = sorcery_config
+            tmp = self.send(config.email_attribute_name)
+            write_attribute("#{sorcery_config.email_attribute_name}", self.send(sorcery_config.pending_email_attribute_name))
+            write_attribute("#{sorcery_config.pending_email_attribute_name}", tmp)
+          end
+
+          def raise_validation_error_on_email!
+            if defined?(ActiveRecord) and self.class.ancestors.include?(ActiveRecord::Base)
+              raise ActiveRecord::RecordInvalid, "Validation failed #{errors.messages[config.email_attribute_name]}"
+            elsif defined?(Mongoid) and self.class.ancestors.include?(Mongoid::Document)
+              raise Errors::Validations, "Validation failed #{errors.messages[config.email_attribute_name]}"
+            elsif defined?(MongoMapper) and self.class.ancestors.include?(MongoMapper::Document)
+              raise MongMapper::DocumentNotValid, "Validation failed #{errors.messages[config.email_attribute_name]}"
+            else
+              raise Errors, "Validation failed #{errors.messages[config.email_attribute_name]}"
+            end
           end
 
           # called automatically after user's email field updated
           def send_email_verification_needed_email!
             generic_send_email(:email_verification_needed_email_method_name, :email_verification_mailer)
           end
-          
+
           def send_email_verification_success_email!
             generic_send_email(:email_verification_success_email_method_name, :email_verification_mailer)
           end
