@@ -246,6 +246,39 @@ Rails.application.config.sorcery.configure do |config|
     # user.prevent_non_active_users_to_login =
 
 
+    # -- email_verification --
+    # the attribute name to hold pending email address.
+    # Default: `:pending_email`
+    #
+    # user.pending_email_attribute_name =
+
+
+    # your mailer class. Required.
+    # Default: `nil`
+    #
+    # user.email_verification_mailer =
+
+
+    # when true sorcery will not automatically
+    # email verification code and allow you to
+    # manually handle how and when email is sent.
+    # Default: `false`
+    #
+    # user.email_verification_mailer_disabled =
+
+
+    # verification needed email method on your mailer class.
+    # Default: `:verification_needed_email`
+    #
+    # user.verification_needed_email_method_name =
+
+
+    # verification success email method on your mailer class.
+    # Default: `:verification_success_email`
+    #
+    # user.verification_success_email_method_name =
+
+
     # -- reset_password --
     # reset password code attribute name.
     # Default: `:reset_password_token`
