@@ -50,7 +50,7 @@ module Sorcery
               user.send("#{sorcery_config.email_attribute_name}_changed?")
             }
 
-            # don't swap back if email address has not been not changed
+            # don't swap back if email address has not been changed
             after_validation :swap_back_emails, :if => Proc.new {|user|
               user.send(sorcery_config.pending_email_attribute_name).present? &&
               user.send("#{sorcery_config.email_attribute_name}_changed?")
@@ -186,7 +186,7 @@ module Sorcery
             write_attribute("#{sorcery_config.pending_email_attribute_name}", tmp)
           end
 
-          def raise_validation_error_on_email!
+          def raise_validation_failed_on_email!
             if defined?(ActiveRecord) and self.class.ancestors.include?(ActiveRecord::Base)
               raise ActiveRecord::RecordInvalid, "Validation failed #{errors.messages[config.email_attribute_name]}"
             elsif defined?(Mongoid) and self.class.ancestors.include?(Mongoid::Document)
@@ -200,11 +200,11 @@ module Sorcery
 
           # called automatically after user's email field updated
           def send_email_verification_needed_email!
-            generic_send_email(:email_verification_needed_email_method_name, :email_verification_mailer)
+            generic_send_email(:email_verification_needed_email_method_name, :email_verification_mailer) unless sorcery_config.email_verification_needed_email_method_name.nil? or sorcery_config.email_verification_mailer_disabled == true
           end
 
           def send_email_verification_success_email!
-            generic_send_email(:email_verification_success_email_method_name, :email_verification_mailer)
+            generic_send_email(:email_verification_success_email_method_name, :email_verification_mailer) unless sorcery_config.email_verification_success_email_method_name.nil? or sorcery_config.email_verification_mailer_disabled == true
           end
 
         end
