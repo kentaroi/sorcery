@@ -47,19 +47,19 @@ module Sorcery
             # don't setup activation if no password supplied - this user is created automatically
             before_update :setup_email_verification, :if => Proc.new { |user|
               user.send(sorcery_config.pending_email_attribute_name).present? &&
-              user.send("#{sorcery_config.email_attribute_name}_changed?")
+                user.send("#{sorcery_config.email_attribute_name}_changed?")
             }
 
             # don't swap back if email address has not been changed
             after_validation :swap_back_emails, :if => Proc.new {|user|
               user.send(sorcery_config.pending_email_attribute_name).present? &&
-              user.send("#{sorcery_config.email_attribute_name}_changed?")
+                user.send("#{sorcery_config.email_attribute_name}_changed?")
             }
 
             # don't send verification needed email if email address was not changed
             after_update :send_email_verification_needed_email!, :if => Proc.new {|user|
               !user.send(sorcery_config.email_verification_mailer_disabled) &&
-              user.previous_changes[sorcery_config.pending_email_attribute_name]
+                user.previous_changes[sorcery_config.pending_email_attribute_name]
             }
           end
 
