@@ -9,6 +9,7 @@ module Sorcery
     end
     module Submodules
       autoload :UserActivation, 'sorcery/model/submodules/user_activation'
+      autoload :EmailVerification, 'sorcery/model/submodules/email_verification'
       autoload :ResetPassword, 'sorcery/model/submodules/reset_password'
       autoload :RememberMe, 'sorcery/model/submodules/remember_me'
       autoload :ActivityLogging, 'sorcery/model/submodules/activity_logging'
