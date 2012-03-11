@@ -28,7 +28,7 @@ module Sorcery
                           :email_verification_needed_email_method_name,         # email verification needed email method on your
                                                                                 # mailer class.
 
-                          :email_verification_success_email_method_name,        # email verification success email method on your
+                          :email_verification_success_email_method_name         # email verification success email method on your
                                                                                 # mailer class.
           end
 
