@@ -179,6 +179,7 @@ module Sorcery
             EOS
             self.class_eval method_definition, __FILE__, __LINE__
           end
+        end
 
         module InstanceMethods
           # clears activation code, sets the user as 'active' and optionaly sends a success email.
