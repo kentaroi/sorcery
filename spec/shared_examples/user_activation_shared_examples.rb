@@ -55,7 +55,7 @@ shared_examples_for "rails_3_activation_model" do
 
     it "should enable configuration option 'pending_email_attribute_name'" do
       sorcery_model_property_set(:pending_email_attribute_name, :my_pending_email)
-      User.sorcery_config.email_verification_on_change_disabled.should equal(:my_pending_email)
+      User.sorcery_config.pending_email_attribute_name.should equal(:my_pending_email)
     end
 
     it "should enable configuration option 'email_verification_needed_email_method_name'" do
