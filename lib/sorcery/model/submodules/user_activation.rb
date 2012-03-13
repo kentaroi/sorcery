@@ -147,7 +147,7 @@ module Sorcery
               # don't send verification needed email if email address was not changed
               after_update :send_email_verification_needed_email!, :if => Proc.new {|user|
                 user.send(sorcery_config.pending_email_attribute_name).present? &&
-                  user.previous_changes[sorcery_config.user_activation_token_attribute_name]
+                  user.previous_changes[sorcery_config.activation_token_attribute_name]
               }
 
             end
@@ -198,7 +198,7 @@ module Sorcery
             write_attribute(config.pending_email_attribute_name, nil)
 
             save!
-            send_verification_success_email!
+            send_email_verification_success_email!
           end
 
           protected

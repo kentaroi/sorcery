@@ -234,12 +234,10 @@ shared_examples_for "rails_3_activation_model" do
       specify { @user.should respond_to(:verify_email!) }
 
       context "when user has not been activated" do
-        context "when set new email address" do
-          before do
-            @old_email = @user.email
-            @new_email = 'new@example.com'
-            @user.email = @new_email
-          end
+        before do
+          @old_email = @user.email
+          @new_email = 'new@example.com'
+          @user.email = @new_email
         end
 
         it "should behave normal setter method" do
