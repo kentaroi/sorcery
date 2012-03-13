@@ -136,7 +136,6 @@ module Sorcery
             end
 
             override_email_attribute_setter_method
-            define_raise_validation_failed_on_email_method
 
             self.class_eval do
               # don't swap back if email address has not been changed
@@ -181,26 +180,6 @@ module Sorcery
             self.class_eval method_definition, __FILE__, __LINE__
           end
 
-          def define_raise_validation_failed_on_email_method
-            exception_class_name = if defined?(ActiveRecord) and self.ancestors.include?(ActiveRecord::Base)
-                                     'ActiveRecord::RecordInvalid'
-                                   elsif defined?(Mongoid) and self.ancestors.include?(Mongoid::Document)
-                                     'Errors::Validations'
-                                   elsif defined?(MongoMapper) and self.ancestors.include?(MongoMapper::Document)
-                                     'MongoMapper::DocumentNotValid'
-                                   else
-                                     'StandardError'
-                                   end
-            method_definition = <<-EOS
-              def raise_validation_failed_on_email!
-                raise #{exception_class_name}, "Validation failed \#{errors.messages.[config.email_attribute_name]}"
-              end
-              protected :raise_validation_failed_on_email!
-            EOS
-            self.class_eval method_definition, __FILE__, __LINE__
-          end
-        end
-
         module InstanceMethods
           # clears activation code, sets the user as 'active' and optionaly sends a success email.
           def activate!
@@ -217,12 +196,7 @@ module Sorcery
             write_attribute(config.email_attribute_name, read_attribute(config.pending_email_attribute_name))
             write_attribute(config.pending_email_attribute_name, nil)
 
-            unless valid?
-              raise_validation_error_on_email! if errors.messages[config.email_attribute_name]
-              @errors = nil
-            end
-
-            save!(:validate => false) # don't run validations
+            save!
             send_verification_success_email!
           end
 
