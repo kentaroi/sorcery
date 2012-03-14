@@ -235,6 +235,7 @@ shared_examples_for "rails_3_activation_model" do
 
       context "when user has not been activated" do
         before do
+          @activation_token = @user.activation_token
           @old_email = @user.email
           @new_email = 'new@example.com'
           @user.email = @new_email
@@ -242,7 +243,7 @@ shared_examples_for "rails_3_activation_model" do
 
         it "should behave normal setter method" do
           @user.email.should == @new_email
-          @user.pending_email.should be_nil
+          @user.pending_email.should == @activation_token
           @user.activation_token.should be_nil
         end
 
@@ -255,7 +256,7 @@ shared_examples_for "rails_3_activation_model" do
           it "should not swap back email addresses and hold new email address in email attribute and should not send the user a verification email" do
             @user.email.should == @new_email
             @user.pending_email.should be_nil
-            @user.activation_token.should be_nil
+            @user.activation_token.should == @activation_token
             ActionMailer::Base.deliveries.size.should == @old_size
           end
 
