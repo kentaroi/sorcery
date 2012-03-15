@@ -97,6 +97,10 @@ module Sorcery
         super # call the default behaviour which resets the session
       end
 
+      def reason_for_login_failure
+        Thread.current[:reason_for_login_failure]
+      end
+
       protected
 
       # Tries all available sources (methods) until one doesn't return false.
