@@ -136,7 +136,7 @@ module Sorcery
           
           def prevent_non_active_login
             config = sorcery_config
-            config.prevent_non_active_users_to_login ? self.send(config.activation_state_attribute_name) == "active" : true
+            config.prevent_non_active_users_to_login ? (self.send(config.activation_state_attribute_name) == "active" or (self.class.reason_for_login_failure = :not_activated; false)) : true
           end
 
         end
