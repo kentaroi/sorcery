@@ -111,9 +111,9 @@ module Sorcery
         set_encryption_attributes()
 
         _salt = user.send(@sorcery_config.salt_attribute_name) if user && !@sorcery_config.salt_attribute_name.nil? && !@sorcery_config.encryption_provider.nil?
-        user if (user or (reason_for_login_failure = :user_not_found; nil)) &&
+        user if (user or (self.reason_for_login_failure = :user_not_found; nil)) &&
                 @sorcery_config.before_authenticate.all? {|c| user.send(c)} &&
-                (credentials_match?(user.send(@sorcery_config.crypted_password_attribute_name),credentials[1],_salt) or (reason_for_login_failure = :invalid_password; false))
+                (credentials_match?(user.send(@sorcery_config.crypted_password_attribute_name),credentials[1],_salt) or (self.reason_for_login_failure = :invalid_password; false))
       end
       
       # encrypt tokens using current encryption_provider.
@@ -125,7 +125,11 @@ module Sorcery
         CryptoProviders::AES256.key = @sorcery_config.encryption_key
         @sorcery_config.encryption_provider.encrypt(*tokens)
       end
-      
+
+      def reason_for_login_failure=(reason)
+        Thread.current[:reason_for_login_failure] = reason
+      end
+
       protected
 
       def set_encryption_attributes()
@@ -137,10 +141,6 @@ module Sorcery
       def credentials_match?(crypted, *tokens)
         return crypted == tokens.join if @sorcery_config.encryption_provider.nil?
         @sorcery_config.encryption_provider.matches?(crypted, *tokens)
-      end
-
-      def reason_for_login_failure=(reason)
-        Thread.current[:reason_for_login_failure] = reason
       end
 
       def add_config_inheritance
