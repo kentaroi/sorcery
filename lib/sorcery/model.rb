@@ -137,7 +137,11 @@ module Sorcery
       end
 
       def using_black_list_for_mass_assignment?
-        active_authorizer.default_proc.call({}, :key).instance_of? ::ActiveModel::MassAssignmentSecurity::BlackList
+        if self.respond_to?(:active_authorizers)
+          active_authorizers.default_proc.call({}, :key).instance_of? ::ActiveModel::MassAssignmentSecurity::BlackList
+        else
+          active_authorizer.instance_of? ::ActiveModel::MassAssignmentSecurity::BlackList
+        end
       end
 
       def add_config_inheritance
